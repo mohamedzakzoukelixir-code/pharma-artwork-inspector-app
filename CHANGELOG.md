@@ -1,4 +1,9 @@
 # Changelog
+## 0.5.1
+- Password-protected (encrypted) PDFs are detected before analysis and reported as Unsupported / Not Verifiable: nothing is compared, no password is tried, and the message says this is not the same as outlined text. PDFs with owner-password restrictions only are read and flagged for review.
+- OCR that reads no words in changed regions is Not Verifiable instead of "no differences".
+- Arabic OCR verified with a synthetic changed-word fixture (test skipped where the Arabic language pack is not installed).
+- Tests: 50 passing.
 ## 0.5.0
 - OCR (tesseract, English + Arabic) for pages with no usable text layer, applied only to regions where the visual comparison found differences. Results are labelled OCR with confidence, never a plain Pass; font, size, bold and underline of outlined text stay Not Verifiable.
 - packages.txt installs tesseract on Streamlit Cloud. Sidebar switch to turn OCR off.
