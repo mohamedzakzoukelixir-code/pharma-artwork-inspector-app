@@ -1,4 +1,10 @@
 # Changelog
+## 0.3.0
+- Renamed to "Elixir Pharma - Quality Assurance Products Artwork AI Verification" (page title, header, reports, README).
+- New checks: text layer present/absent, font embedding, page rotation, document metadata (dates/producer treated as informational).
+- Report: failures first, summary cards, embedded visual-diff images, full SHA-256, print-ready HTML; new CSV export (Excel-safe for Arabic).
+- UI: tabs (Findings, Visual differences, Files and settings, Download), failures-only toggle, help text, clean error messages instead of tracebacks.
+- Tests: 38 passing.
 ## 0.2.0
 - Arabic: extracted text normalized with NFKC (shaped/presentation forms folded to base letters), readable in reports; Arabic-Indic vs Western digit mismatch flagged for review.
 - Colour: vector fill/stroke RGB palettes compared with usage counts; Separation/DeviceN (spot/Pantone) ink names compared. Tints, ICC, overprint, Delta E remain Not Implemented.
