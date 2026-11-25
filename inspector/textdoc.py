@@ -132,7 +132,7 @@ def _ctx(words, i):
 def compare(ref_data, cand_data, n, dpi=100):
     """Returns (rows, highlights) where highlights = {page: ([ref regions], [cand regions])} in pixels at dpi."""
     A, B = extract(ref_data), extract(cand_data)
-    rows, hl = [], {}
+    rows, hl, thin = [], {}, []
     s = dpi / 72
     for pi in range(n):
         a, b = A[pi], B[pi]
@@ -145,8 +145,10 @@ def compare(ref_data, cand_data, n, dpi=100):
             rows.append(make("Text document: outlined text", S.REVIEW,
                              f"Few text-layer words ({len(wa)} Reference, {len(wb)} Candidate) but many vector paths ({len(a['outlines'])}/{len(b['outlines'])}). "
                              "Body text is probably converted to outlines: wording, font, size, bold and underline CANNOT be read as text. "
-                             "Compared by vector outline geometry instead (below) and by visual diff. OCR is not implemented.", pg))
+                             "Compared by vector outline geometry instead (below) and by visual diff. OCR is used only on changed regions (see OCR rows).", pg))
         outlined = few or (len(a["outlines"]) > 400 and len(wa) < 80)
+        if outlined or max(len(wa), len(wb)) < 15:
+            thin.append(pg)
         # --- wording
         if wa or wb:
             sm = difflib.SequenceMatcher(None, [w["text"] for w in wa], [w["text"] for w in wb], autojunk=False)
@@ -198,7 +200,7 @@ def compare(ref_data, cand_data, n, dpi=100):
             if shown >= MAX_ROWS:
                 rows.append(make("Format difference", S.FAIL, "More format differences exist than listed; see highlights", pg))
         else:
-            rows.append(make("Wording (word by word)", S.NOT_VERIFIABLE, "No text layer on this page in either file. OCR is not implemented.", pg))
+            rows.append(make("Wording (word by word)", S.NOT_VERIFIABLE, "No text layer on this page in either file. OCR is used only on changed regions (see OCR rows).", pg))
         # --- numbering
         na = [(m.group(1).strip(), ln["text"][:40]) for ln in a["lines"] for m in [NUM_RE.match(ln["text"])] if m]
         nb = [(m.group(1).strip(), ln["text"][:40]) for ln in b["lines"] for m in [NUM_RE.match(ln["text"])] if m]
@@ -280,4 +282,4 @@ def compare(ref_data, cand_data, n, dpi=100):
                     for k in list(keys.elements())[:3000]:
                         rr.append(_hl([k[0] / 2, k[1] / 2, k[2] / 2, k[3] / 2], MAGENTA, s, 1))
         hl[pg] = (ra, rb)
-    return rows, hl
+    return rows, hl, thin
