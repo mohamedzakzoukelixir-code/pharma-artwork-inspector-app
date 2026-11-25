@@ -14,7 +14,7 @@ def check_text_layer(ref, cand, n):
         if a != b:
             rows.append(make("Text layer", S.FAIL, f"Text layer exists in {'Reference' if a else 'Candidate'} only (the other page has no extractable text: outlined or image-only?).", i + 1))
         elif not a:
-            rows.append(make("Text layer", S.REVIEW, "No extractable text in either page. Text may be outlined or image-only; OCR is not implemented, so text was not compared.", i + 1))
+            rows.append(make("Text layer", S.REVIEW, "No extractable text in either page. Text may be outlined or image-only; OCR (if enabled) reads only changed regions; text was not compared as text.", i + 1))
         else:
             rows.append(make("Text layer", S.PASS, "Both pages have an extractable text layer.", i + 1))
     return rows
