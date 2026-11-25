@@ -132,3 +132,59 @@ def test_ocr_on_image_only_pages_is_labelled_and_never_plain_pass():
     # OCR off
     res3, _ = engine.run(a, b, None, 100, 40, False, False)
     assert any(r["check"].startswith("OCR wording") and r["status"] == S.NOT_IMPLEMENTED for r in res3["rows"])
+
+
+def _locked(user_pw="pw", owner_pw="own"):
+    d = pymupdf.open(); p = d.new_page(); p.insert_text((50, 80), "Secret leaflet text", fontsize=12)
+    return d.tobytes(encryption=pymupdf.PDF_ENCRYPT_AES_256, user_pw=user_pw, owner_pw=owner_pw)
+
+
+def test_password_protected_pdf_is_unsupported_not_outlined_and_not_compared():
+    plain = _bytes()
+    for ref, cand in ((_locked(), plain), (plain, _locked())):
+        res, ov = engine.run(ref, cand, None, 72, 40, False)
+        assert res["unsupported"] and ov == {}
+        assert res["counts"][S.PASS] == 0 and res["counts"][S.FAIL] == 0
+        assert all(r["status"] == S.NOT_VERIFIABLE for r in res["rows"])
+        assert "password-protected" in res["rows"][0]["detail"] and "outlined" in res["rows"][0]["detail"]
+        assert "Unsupported" in res["overall"]
+
+
+def test_owner_password_only_pdf_opens_and_is_flagged_for_review():
+    res, _ = engine.run(_locked(user_pw="", owner_pw="own"), _bytes(), None, 72, 40, False)
+    assert not res.get("unsupported")
+    assert any(r["check"].startswith("File access (encryption") and r["status"] == S.REVIEW for r in res["rows"])
+
+
+def test_report_exports_work_for_unsupported_result():
+    from inspector import report
+    res, ov = engine.run(_locked(), _bytes(), None, 72, 40, False)
+    assert "Unsupported" in report.to_html(res, "a.pdf", "b.pdf", ov) and report.to_json(res, "a", "b") and report.to_csv(res)
+
+
+def _arabic_image_pdf(lines):
+    import os
+    font = "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"
+    if not os.path.exists(font):
+        return None
+    d = pymupdf.open(); p = d.new_page(width=620, height=350)
+    html = "".join(f'<p dir="rtl" style="font-family:ar;font-size:24pt;margin:6pt">{t}</p>' for t in lines)
+    arch = pymupdf.Archive(); arch.add(open(font, "rb").read(), "font.ttf")
+    p.insert_htmlbox(pymupdf.Rect(20, 20, 600, 330), html, css="@font-face{font-family:ar;src:url(font.ttf)}", archive=arch)
+    png = p.get_pixmap(dpi=200, alpha=False).tobytes("png")
+    d2 = pymupdf.open(); q = d2.new_page(width=620, height=350); q.insert_image(q.rect, stream=png)
+    return d2.tobytes(deflate=True, garbage=4)
+
+
+def test_arabic_ocr_finds_changed_word_when_arabic_pack_installed():
+    import pytest
+    from inspector import ocr
+    langs = ocr.languages() or ""
+    a = _arabic_image_pdf(["يحفظ في مكان بارد بعيدا عن متناول الأطفال", "تؤخذ قرص واحد يوميا بعد الأكل"])
+    if "ara" not in langs or a is None:
+        pytest.skip("Arabic tesseract pack or Arabic font not installed")
+    b = _arabic_image_pdf(["يحفظ في مكان جاف بعيدا عن متناول الأطفال", "تؤخذ قرص واحد يوميا بعد الأكل"])
+    res, _ = engine.run(a, b, None, 100, 40, False)
+    d = [r for r in res["rows"] if r["check"] == "OCR wording difference"]
+    assert d and "بارد" in d[0]["detail"] and "جاف" in d[0]["detail"]
+    assert all(r["status"] != S.PASS for r in res["rows"] if r["source"] == "OCR")
