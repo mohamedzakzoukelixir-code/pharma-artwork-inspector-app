@@ -1,4 +1,10 @@
 # Changelog
+## 0.4.0
+- Text-document review: word-by-word wording, font family, size, bold, italic, underline, colour, numbering/bullets, ruled tables, item/batch codes, footer area.
+- Outlined text detected and never reported as Pass; vector outline geometry compared instead.
+- Highlights drawn directly on Reference and Candidate pages by category; highlighted-pages PDF download; in-app instructions and legend.
+- Faster drawing extraction (about 3x on vector-heavy pages).
+- Tests: 45 passing.
 ## 0.3.0
 - Renamed to "Elixir Pharma - Quality Assurance Products Artwork AI Verification" (page title, header, reports, README).
 - New checks: text layer present/absent, font embedding, page rotation, document metadata (dates/producer treated as informational).
