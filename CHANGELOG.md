@@ -1,4 +1,8 @@
 # Changelog
+## 0.5.0
+- OCR (tesseract, English + Arabic) for pages with no usable text layer, applied only to regions where the visual comparison found differences. Results are labelled OCR with confidence, never a plain Pass; font, size, bold and underline of outlined text stay Not Verifiable.
+- packages.txt installs tesseract on Streamlit Cloud. Sidebar switch to turn OCR off.
+- Tests: 46 passing.
 ## 0.4.0
 - Text-document review: word-by-word wording, font family, size, bold, italic, underline, colour, numbering/bullets, ruled tables, item/batch codes, footer area.
 - Outlined text detected and never reported as Pass; vector outline geometry compared instead.
