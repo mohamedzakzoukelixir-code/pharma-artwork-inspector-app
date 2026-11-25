@@ -1,0 +1,1 @@
+{"name": "Example carton (replace with approved values)", "source": "Approved spec document ID / version", "unit": "mm", "page": 1, "expected": {"width": 150.0, "height": 70.0}, "tolerance": 0.5}
