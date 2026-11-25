@@ -48,6 +48,7 @@ with st.expander("How to use this tool and what it checks", expanded=not (ref an
 - Text that was converted to outlines or an image (common in print-ready artwork) has no text layer. The tool compares vector outline geometry and pixels, which detects any change. Then it runs **OCR (English + Arabic) only on the changed regions** to name the words that differ, with a confidence value. OCR is a reading of pixels: its results are marked **Requires Human Review** (low confidence) or Fail (high confidence) and are never a plain Pass. Font, size, bold and underline of outlined text cannot be proven by OCR and stay **Not Verifiable**: check the highlighted regions visually.
 - Underline is detected from thin lines under the text. Borderless tables are not detected.
 - Pages are compared at the same coordinates: a shifted layout shows many differences.
+- Password-protected (encrypted) PDFs are **Unsupported**: nothing is compared and the result says so. The tool never tries passwords. This is different from outlined text.
 - A Pass only means that check ran and found nothing. It is not release approval.
 """)
 
@@ -65,7 +66,7 @@ if st.button("Run inspection", disabled=not (ref and cand), type="primary"):
 
 if "res" in st.session_state:
     res, overlays, rn, cn = st.session_state["res"]
-    box = st.error if res["counts"][S.FAIL] else st.warning
+    box = st.error if (res["counts"][S.FAIL] or res.get("unsupported")) else st.warning
     box(res["overall"])
     cols = st.columns(len(S.ALL))
     for col, s in zip(cols, S.ALL):
