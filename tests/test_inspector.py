@@ -1,3 +1,4 @@
+import json
 import pymupdf
 import pytest
 from inspector import pdf_analysis as P, compare as C, engine, specs, report, status as S
@@ -162,7 +163,7 @@ def test_spec_pass_fail_and_gaps(pdf):
 def test_report_contains_disclaimer_and_unverified(pdf):
     res = run(pdf(), pdf())
     h = report.to_html(res, "ref.pdf", "cand.pdf")
-    assert "not a certificate" in h.lower()
+    assert "does not constitute release approval" in h
     assert "Not Implemented" in h and "sha256" in h
     import json
     j = json.loads(report.to_json(res, "ref.pdf", "cand.pdf"))
@@ -302,3 +303,14 @@ def test_html_report_embeds_title_overlay_and_escapes(pdf):
 def test_corrupt_bytes_rejected_cleanly():
     with pytest.raises(UnsupportedPDF):
         engine.run(b"not a pdf", b"not a pdf")
+
+
+def test_footer_text_in_html_and_json(pdf):
+    res, ov = engine.run(pdf(), pdf(), do_barcode=False)
+    page = report.to_html(res, "a.pdf", "b.pdf", ov)
+    data = json.loads(report.to_json(res, "a.pdf", "b.pdf"))
+    for line in ("Inspection Aid Only", "Mohamed Mostafa Zakzouk", "Quality Assurance Supervisor",
+                 "Authorized, Verified, and Created By:",
+                 "Not GMP-validated and does not constitute release approval. Human review and sign-off are mandatory."):
+        assert line in page and line in data["disclaimer"]
+    assert data["footer"][-1] == "Mohamed Mostafa Zakzouk"
