@@ -109,7 +109,7 @@ def analyze(data: bytes):
             except Exception:
                 images.append({"width": im[2], "height": im[3], "hash": None})
         info["images"] = images
-        drawings = page.get_drawings()
+        drawings = page.get_cdrawings()
         info["vector_drawings"] = len(drawings)
         fills, strokes = {}, {}
         for d in drawings:
