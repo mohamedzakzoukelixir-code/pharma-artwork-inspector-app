@@ -1,10 +1,10 @@
 """Run all checks and build the report structure."""
 import datetime
-from . import status as S, pdf_analysis as P, compare as C, barcodes as B, specs, checks as K, textdoc as T
+from . import status as S, pdf_analysis as P, compare as C, barcodes as B, specs, checks as K, textdoc as T, ocr as OCR
 from .status import make
 
 STANDING_LIMITS = [
-    ("OCR", S.NOT_IMPLEMENTED, "OCR is not implemented in this version; outlined or image-only text cannot be read."),
+    ("OCR scope", S.REVIEW, "OCR runs only on pages without a usable text layer and only on regions where the visual comparison found differences. Its output is a reading of pixels with a confidence value, never proof of wording, font, size, bold or underline."),
     ("Colour (ICC / tint values / overprint / Delta E)", S.NOT_IMPLEMENTED, "Compared: text and vector RGB values, spot ink names, RGB render. Not evaluated: ICC conversion, tint percentages, overprint, Delta E. Screen RGB is not a colorimetric measurement."),
     ("Dieline / cut and fold lines", S.NOT_IMPLEMENTED, "Dieline extraction is not implemented."),
     ("Regulatory / compliance rules", S.NOT_CONFIGURED, "No documented rules supplied; no compliance result is issued."),
@@ -14,7 +14,7 @@ STANDING_LIMITS = [
 ]
 
 
-def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode=True):
+def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode=True, do_ocr=True):
     ref, cand = P.analyze(ref_bytes), P.analyze(cand_bytes)
     n = min(ref["page_count"], cand["page_count"])
     rows = []
@@ -32,7 +32,7 @@ def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode
     rows += K.check_font_embedding(ref, cand, n)
     rows += K.check_rotation(ref, cand, n)
     rows += K.compare_metadata(ref, cand)
-    trows, thl = T.compare(ref_bytes, cand_bytes, n, dpi)
+    trows, thl, thin = T.compare(ref_bytes, cand_bytes, n, dpi)
     rows += trows
     pairs = [(i + 1, P.render_page(ref_bytes, i, dpi), P.render_page(cand_bytes, i, dpi)) for i in range(n)]
     vrows, overlays = C.compare_visual(pairs, dpi, threshold)
@@ -42,6 +42,14 @@ def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode
             rows += B.compare_barcodes(lambda d, i=i: P.render_page(ref_bytes, i, d), lambda d, i=i: P.render_page(cand_bytes, i, d), i + 1)
     else:
         rows.append(make("Barcode", S.NOT_VERIFIABLE, "Barcode step skipped by user", None, "render"))
+    if do_ocr and thin:
+        orows, ohl = OCR.compare(ref_bytes, cand_bytes, thin, {k: v[1] for k, v in overlays.items() if isinstance(k, int)}, dpi)
+        rows += orows
+        for pg, (xa, xb) in ohl.items():
+            ra, rb = thl.get(pg, ([], []))
+            thl[pg] = (ra + xa, rb + xb)
+    elif thin:
+        rows += [make("OCR wording of outlined text", S.NOT_IMPLEMENTED, "OCR was switched off for this run.", pg, "OCR") for pg in thin]
     for pg, (ra, rb) in thl.items():
         if ra or rb:
             overlays[f"{pg} Reference (text/format/table/code highlights)"] = (pairs[pg - 1][1], ra)
