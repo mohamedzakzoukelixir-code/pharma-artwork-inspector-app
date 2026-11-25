@@ -1,5 +1,7 @@
 """Run all checks and build the report structure."""
 import datetime
+import hashlib
+import pymupdf
 from . import status as S, pdf_analysis as P, compare as C, barcodes as B, specs, checks as K, textdoc as T, ocr as OCR
 from .status import make
 
@@ -14,10 +16,48 @@ STANDING_LIMITS = [
 ]
 
 
+def access_info(data):
+    """Open-ability facts read without trying any password. Returns dict(readable, needs_pass, encrypted, perms)."""
+    try:
+        doc = pymupdf.open(stream=data, filetype="pdf")
+    except Exception:
+        return {"readable": False, "needs_pass": False, "encrypted": False, "perms": None}
+    info = {"readable": True, "needs_pass": bool(doc.needs_pass), "encrypted": bool(doc.is_encrypted or (doc.metadata or {}).get("encryption")), "perms": None}
+    if info["encrypted"] and not info["needs_pass"]:
+        p = doc.permissions
+        info["perms"] = {"print": bool(p & pymupdf.PDF_PERM_PRINT), "copy_text": bool(p & pymupdf.PDF_PERM_COPY), "modify": bool(p & pymupdf.PDF_PERM_MODIFY)}
+    doc.close()
+    return info
+
+
+def _unsupported(ref_bytes, cand_bytes, locked):
+    rows = [make("File access (password protection)", S.NOT_VERIFIABLE,
+                 f"UNSUPPORTED: the {label} PDF is password-protected (encrypted) and cannot be opened without the password. NOTHING was compared for this pair. "
+                 "This is not the same as outlined text. The tool never tries passwords or bypasses protection: provide an unprotected copy through your approved procedure.", None, "file")
+            for label in locked]
+    counts = {st: sum(1 for r in rows if r["status"] == st) for st in S.ALL}
+    sha = lambda b: hashlib.sha256(b).hexdigest()
+    return {"generated": datetime.datetime.now().isoformat(timespec="seconds"), "unsupported": True,
+            "reference": {"sha256": sha(ref_bytes), "pages": 0, "metadata": {}},
+            "candidate": {"sha256": sha(cand_bytes), "pages": 0, "metadata": {}},
+            "settings": {}, "overall": "Cannot verify: password-protected PDF (Unsupported). No comparison was performed",
+            "counts": counts, "rows": rows, "analysis": {}}, {}
+
+
 def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode=True, do_ocr=True):
+    acc = {"Reference": access_info(ref_bytes), "Candidate": access_info(cand_bytes)}
+    locked = [k for k, v in acc.items() if v["needs_pass"]]
+    if locked:
+        return _unsupported(ref_bytes, cand_bytes, locked)
     ref, cand = P.analyze(ref_bytes), P.analyze(cand_bytes)
     n = min(ref["page_count"], cand["page_count"])
     rows = []
+    for label, v in acc.items():
+        if v["encrypted"]:
+            pr = v["perms"] or {}
+            rows.append(make("File access (encryption with restrictions)", S.REVIEW,
+                             f"The {label} PDF is encrypted with an owner password only (opens without a password). Permissions: print {pr.get('print')}, copy text {pr.get('copy_text')}, modify {pr.get('modify')}. "
+                             "It was read normally, but confirm that this protection is expected.", None, "file"))
     rows += C.compare_pages_count(ref, cand)
     rows += C.compare_dimensions(ref, cand, n)
     rows += C.compare_text(ref, cand, n)
