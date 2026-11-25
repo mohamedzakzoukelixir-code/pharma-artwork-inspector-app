@@ -1,4 +1,4 @@
-# Elixir Pharma - Quality Assurance Products Artwork AI Verification (clean Streamlit build, v0.3.0)
+# Elixir Pharma - Quality Assurance Products Artwork AI Verification (clean Streamlit build, v0.4.0)
 
 Compares a Reference artwork PDF with a Candidate artwork PDF and reports differences. Inspection aid only: not GMP-validated, not a release approval. Human review and sign-off are mandatory.
 
@@ -15,3 +15,9 @@ Pass / Fail / Not Configured / Not Verifiable / Requires Human Review / Not Impl
 
 ## Known limitations
 No OCR, no ICC/Pantone/spot/overprint evaluation, no dieline extraction, no image registration (pages compared at identical coordinates), no regulatory rules, no packaging profiles, no authentication, audit trail or e-signatures. Arabic text order extracted from PDFs may differ from visual order (flagged). Barcode decode is not a print-quality grade. Positions use a 0.5 pt tolerance, sizes 0.05 pt, pixel threshold selectable.
+
+
+## Text documents (v0.4.0)
+Leaflets and inserts are compared word by word, then for each matching word: font family, size, bold, italic, underline and colour. Numbering and bullets, ruled tables, item/batch codes and the footer area are compared too. Every difference is marked directly on the Reference and Candidate pages (red wording, orange format, blue tables, magenta codes/outlines) and can be downloaded as a highlighted PDF.
+
+Limit: text converted to outlines has no text layer. It is reported as "Requires Human Review" (never Pass) and compared by vector outline geometry and pixels. OCR is not implemented.
