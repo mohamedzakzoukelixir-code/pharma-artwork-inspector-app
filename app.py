@@ -5,8 +5,8 @@ from PIL import ImageDraw
 from inspector import engine, report, specs, status as S
 from inspector.pdf_analysis import UnsupportedPDF
 
-st.set_page_config(page_title="Pharma Artwork AI Inspector", layout="wide")
-st.title("Pharma Artwork AI Inspector")
+st.set_page_config(page_title="Elixir Pharma - Quality Assurance Products Artwork AI Verification", layout="wide")
+st.title("Elixir Pharma - Quality Assurance Products Artwork AI Verification")
 st.warning("Inspection aid only. Not GMP-validated, not a release approval. Human review and sign-off are mandatory.")
 
 with st.sidebar:
