@@ -17,6 +17,7 @@ with st.sidebar:
     dpi = st.select_slider("Render dpi", [72, 100, 150, 200], value=100, help="Higher dpi finds smaller visual differences but is slower.")
     thr = st.select_slider("Pixel difference threshold (0-255)", [16, 24, 40, 70], value=40, help="Lower = more sensitive.")
     do_bc = st.checkbox("Decode barcodes (slower)", True)
+    do_ocr = st.checkbox("OCR for outlined or image-only text", True, help="Reads only the regions where a difference was found, in pages with no usable text layer (English + Arabic). OCR output is labelled and shows confidence. Turn off for speed.")
     st.caption("Packaging material profile: Not Configured")
     spec_text = st.text_area("Dimensional spec (JSON, optional)", height=160, placeholder=json.dumps(specs.EXAMPLE, indent=2))
     st.caption("Uploaded files are processed in memory and are not stored by this app.")
@@ -31,7 +32,7 @@ with st.expander("How to use this tool and what it checks", expanded=not (ref an
     st.markdown("""
 **Steps**
 1. Upload the **Reference** (approved) PDF and the **Candidate** (new) PDF.
-2. Press **Run inspection**. Large artwork pages can take about a minute.
+2. Press **Run inspection**. Large artwork pages can take a minute or more (OCR adds time per changed region).
 3. Open **Highlighted pages** to see every difference marked directly on the Reference and the Candidate page.
 4. Open **Findings** for the list (failures first), then download the report (HTML, CSV, JSON) or the highlighted pages (PDF).
 
@@ -44,7 +45,7 @@ with st.expander("How to use this tool and what it checks", expanded=not (ref an
 **Text documents (leaflets, inserts)** are compared word by word (letters, digits, punctuation, case, Arabic), then for each matching word: font family, size, bold, italic, underline and colour. Numbering and bullets, ruled tables (rows, columns, cell text), item or batch codes, and the footer area (bottom 12% of the page) are compared too.
 
 **Limits you must know**
-- Text that was converted to outlines (common in print-ready artwork) has no text layer. It cannot be read as words, so wording, font and underline are shown as **Requires Human Review**, never Pass. For those pages the tool compares vector outline geometry and pixels, which detects any change but does not name the word. OCR is not implemented.
+- Text that was converted to outlines or an image (common in print-ready artwork) has no text layer. The tool compares vector outline geometry and pixels, which detects any change. Then it runs **OCR (English + Arabic) only on the changed regions** to name the words that differ, with a confidence value. OCR is a reading of pixels: its results are marked **Requires Human Review** (low confidence) or Fail (high confidence) and are never a plain Pass. Font, size, bold and underline of outlined text cannot be proven by OCR and stay **Not Verifiable**: check the highlighted regions visually.
 - Underline is detected from thin lines under the text. Borderless tables are not detected.
 - Pages are compared at the same coordinates: a shifted layout shows many differences.
 - A Pass only means that check ran and found nothing. It is not release approval.
@@ -53,7 +54,7 @@ with st.expander("How to use this tool and what it checks", expanded=not (ref an
 if st.button("Run inspection", disabled=not (ref and cand), type="primary"):
     try:
         with st.spinner("Inspecting text, fonts, colours, dimensions, images and barcodes..."):
-            res, overlays = engine.run(ref.getvalue(), cand.getvalue(), spec_text, dpi, thr, do_bc)
+            res, overlays = engine.run(ref.getvalue(), cand.getvalue(), spec_text, dpi, thr, do_bc, do_ocr)
         st.session_state["res"] = (res, overlays, ref.name, cand.name)
     except UnsupportedPDF as exc:
         st.error(f"Cannot inspect: {exc}")
