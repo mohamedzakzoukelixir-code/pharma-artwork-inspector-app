@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: pharma-artwork-inspector
+    runtime: docker
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PORT
+        value: "8501"
