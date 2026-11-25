@@ -1,6 +1,6 @@
 """Run all checks and build the report structure."""
 import datetime
-from . import status as S, pdf_analysis as P, compare as C, barcodes as B, specs
+from . import status as S, pdf_analysis as P, compare as C, barcodes as B, specs, checks as K
 from .status import make
 
 STANDING_LIMITS = [
@@ -28,6 +28,10 @@ def run(ref_bytes, cand_bytes, spec_text=None, dpi=100, threshold=40, do_barcode
     rows += C.compare_colors(ref, cand, n)
     rows += C.compare_image_resolution(ref, cand, n)
     rows += C.dimension_summary(ref)
+    rows += K.check_text_layer(ref, cand, n)
+    rows += K.check_font_embedding(ref, cand, n)
+    rows += K.check_rotation(ref, cand, n)
+    rows += K.compare_metadata(ref, cand)
     pairs = [(i + 1, P.render_page(ref_bytes, i, dpi), P.render_page(cand_bytes, i, dpi)) for i in range(n)]
     vrows, overlays = C.compare_visual(pairs, dpi, threshold)
     rows += vrows
