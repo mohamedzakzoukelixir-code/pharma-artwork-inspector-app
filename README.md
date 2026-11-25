@@ -1,4 +1,4 @@
-# Elixir Pharma - Quality Assurance Products Artwork AI Verification (clean Streamlit build, v0.2.0)
+# Elixir Pharma - Quality Assurance Products Artwork AI Verification (clean Streamlit build, v0.3.0)
 
 Compares a Reference artwork PDF with a Candidate artwork PDF and reports differences. Inspection aid only: not GMP-validated, not a release approval. Human review and sign-off are mandatory.
 
