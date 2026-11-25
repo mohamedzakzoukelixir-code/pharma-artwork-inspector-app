@@ -53,7 +53,7 @@ def test_never_pass_for_unconfigured(pdf):
     res = run(pdf(), pdf())
     assert statuses(res, "Dimensional spec check") == [S.NOT_CONFIGURED]
     assert statuses(res, "Regulatory / compliance rules") == [S.NOT_CONFIGURED]
-    assert statuses(res, "OCR") == [S.NOT_IMPLEMENTED]
+    assert statuses(res, "OCR scope") == [S.REVIEW]
 
 
 # --- differences
