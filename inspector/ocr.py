@@ -166,6 +166,10 @@ def compare(ref_bytes, cand_bytes, pages, regions_by_page, dpi):
                     rows.append(make("OCR wording difference", S.FAIL if conf >= CONF_OK else S.REVIEW,
                                      f"OCR-derived. Reference '{ta}' | Candidate '{tb}' (lowest word confidence {conf:.0f}%)"
                                      + ("" if conf >= CONF_OK else ". Low confidence: may be an OCR misread, check visually"), pg, "OCR"))
+        if not confs:
+            rows.append(make("OCR wording of outlined text", S.NOT_VERIFIABLE, f"OCR ({lang}) read no words in the {len(boxes)} changed region(s) of either file (text too small, too stylised or not in the installed languages). Wording could not be compared as text: check the highlighted regions visually.", pg, "OCR"))
+            hl[pg] = (ha, hb)
+            continue
         mean = sum(confs) / len(confs) if confs else 0
         note = f"OCR ({lang}) read {len(boxes)} changed region(s), mean confidence {mean:.0f}%." + (f" {skipped} more region(s) not read (limit)." if skipped else "")
         if diffs:
