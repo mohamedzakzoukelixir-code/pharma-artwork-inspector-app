@@ -237,3 +237,68 @@ def test_spec_uses_named_box():
 def test_dimension_summary_in_mm(pdf):
     rows = C.dimension_summary(P.analyze(pdf(size=(283.465, 141.732))))
     assert any("100.00 x 50.00 mm" in r["detail"] for r in rows)
+
+
+# --- v0.3.0 checks
+def blank_pdf(rotation=0, title=None):
+    doc = pymupdf.open(); pg = doc.new_page(width=300, height=200)
+    if rotation:
+        pg.set_rotation(rotation)
+    if title:
+        doc.set_metadata({"title": title})
+    return doc.tobytes()
+
+
+def test_text_layer_missing_in_candidate(pdf):
+    res = run(pdf(), blank_pdf())
+    assert statuses(res, "Text layer") == [S.FAIL]
+
+
+def test_text_layer_absent_in_both_needs_review():
+    res = run(blank_pdf(), blank_pdf())
+    assert statuses(res, "Text layer") == [S.REVIEW]
+
+
+def test_text_layer_present_passes(pdf):
+    assert statuses(run(pdf(), pdf()), "Text layer") == [S.PASS]
+
+
+def test_rotation_difference_fails():
+    assert statuses(run(blank_pdf(0), blank_pdf(90)), "Page rotation") == [S.FAIL]
+    assert statuses(run(blank_pdf(0), blank_pdf(0)), "Page rotation") == [S.PASS]
+
+
+def test_unembedded_font_needs_review(pdf):
+    res = run(pdf(), pdf())  # built-in Helvetica is not embedded
+    assert S.REVIEW in statuses(res, "Font embedding")
+
+
+def test_metadata_title_difference_needs_review():
+    res = run(blank_pdf(title="A"), blank_pdf(title="B"))
+    assert statuses(res, "Document metadata") == [S.REVIEW]
+    assert statuses(run(blank_pdf(title="A"), blank_pdf(title="A")), "Document metadata") == [S.PASS]
+
+
+def test_findings_sorted_failures_first(pdf):
+    res = run(pdf(), pdf(pages=(("Dose 25 mg", 12, (0, 0, 0)),)))
+    rows = report.sorted_rows(res["rows"])
+    first_pass = next(i for i, r in enumerate(rows) if r["status"] == S.PASS)
+    assert all(r["status"] != S.PASS for r in rows[:first_pass]) and rows[0]["status"] == S.FAIL
+
+
+def test_csv_has_bom_and_all_rows(pdf):
+    res = run(pdf(), pdf())
+    out = report.to_csv(res)
+    assert out.startswith("\ufeff") and out.count("\n") >= len(res["rows"])
+
+
+def test_html_report_embeds_title_overlay_and_escapes(pdf):
+    res, ov = engine.run(pdf(), pdf(pages=(("<b>25</b> mg", 12, (0, 0, 0)),)), do_barcode=False)
+    page = report.to_html(res, "<ref>.pdf", "cand.pdf", ov)
+    assert report.TITLE in page and "data:image/png;base64," in page
+    assert "&lt;ref&gt;.pdf" in page and "<b>25</b>" not in page
+
+
+def test_corrupt_bytes_rejected_cleanly():
+    with pytest.raises(UnsupportedPDF):
+        engine.run(b"not a pdf", b"not a pdf")
