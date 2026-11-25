@@ -2,4 +2,4 @@
 
 An inspection aid. Not a GMP-validated system and not a release approval.
 """
-__version__ = "0.3.0"
+__version__ = "0.4.0"
