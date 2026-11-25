@@ -19,9 +19,9 @@ def to_html(result, ref_name, cand_name):
         f"<tr><td>{html.escape(str(r['page'] or '-'))}</td><td>{html.escape(r['check'])}</td>"
         f"<td style='color:{colors[r['status']]};font-weight:700'>{r['status']}</td><td>{html.escape(r['detail'])}</td>"
         f"<td>{html.escape(str(r['source']))}</td></tr>" for r in result["rows"])
-    return f"""<!doctype html><meta charset=utf-8><title>Artwork inspection report</title>
+    return f"""<!doctype html><meta charset=utf-8><title>Elixir Pharma - Quality Assurance Products Artwork AI Verification: inspection report</title>
 <style>body{{font-family:sans-serif;margin:24px}}table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid #ccc;padding:5px;font-size:13px;text-align:left;vertical-align:top}}</style>
-<h1>Artwork inspection report</h1>
+<h1>Elixir Pharma - Quality Assurance Products Artwork AI Verification</h1><h2>Artwork inspection report</h2>
 <p><b>Reference:</b> {html.escape(ref_name)} (sha256 {result['reference']['sha256'][:16]})<br>
 <b>Candidate:</b> {html.escape(cand_name)} (sha256 {result['candidate']['sha256'][:16]})<br>
 <b>Generated:</b> {result['generated']}<br><b>Settings:</b> {result['settings']}</p>
