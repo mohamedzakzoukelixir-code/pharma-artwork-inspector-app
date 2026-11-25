@@ -10,7 +10,7 @@ st.markdown("""<style>
 div[data-testid=stMetric]{background:#f7f7f8;border-radius:8px;padding:8px 12px;border-top:3px solid #bbb}
 </style>""", unsafe_allow_html=True)
 st.title(TITLE)
-st.warning("Inspection aid only. Not GMP-validated, not a release approval. Human review and sign-off are mandatory.")
+st.warning(report.BANNER)
 
 with st.sidebar:
     st.header("Settings")
@@ -70,4 +70,6 @@ if "res" in st.session_state:
         st.download_button("Download report (HTML, printable)", report.to_html(res, rn, cn, overlays), "inspection_report.html", "text/html")
         st.download_button("Download findings (CSV)", report.to_csv(res), "inspection_findings.csv", "text/csv")
         st.download_button("Download report (JSON)", report.to_json(res, rn, cn), "inspection_report.json", "application/json")
-    st.caption(report.DISCLAIMER)
+
+st.divider()
+st.markdown("**" + report.FOOTER_LINES[0] + "**  \n" + report.FOOTER_LINES[1] + "\n\n" + report.FOOTER_LINES[2] + "  \n**" + report.FOOTER_LINES[3] + "**  \n**" + report.FOOTER_LINES[4] + "**")
