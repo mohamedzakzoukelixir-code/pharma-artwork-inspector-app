@@ -97,3 +97,38 @@ def test_highlight_pdf_and_html_report():
     pdf = report.highlights_pdf(ov)
     assert pdf and pdf[:4] == b"%PDF"
     assert "Highlighted" in report.to_html(res, "a.pdf", "b.pdf", ov) or "diff page" in report.to_html(res, "a.pdf", "b.pdf", ov)
+
+
+def _image_pdf(lines):
+    import io
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.new("RGB", (1240, 700), "white")
+    dr = ImageDraw.Draw(im)
+    f = ImageFont.load_default(size=44)
+    for i, t in enumerate(lines):
+        dr.text((60, 60 + i * 90), t, fill="black", font=f)
+    buf = io.BytesIO(); im.save(buf, "PNG")
+    d = pymupdf.open(); p = d.new_page(width=620, height=350)
+    p.insert_image(p.rect, stream=buf.getvalue())
+    return d.tobytes()
+
+
+def test_ocr_on_image_only_pages_is_labelled_and_never_plain_pass():
+    import pytest
+    from inspector import ocr
+    if not ocr.available():
+        pytest.skip("tesseract not installed")
+    a = _image_pdf(["Store below thirty degrees", "Keep away from children"])
+    b = _image_pdf(["Store below twenty degrees", "Keep away from children"])
+    res, ov = engine.run(a, b, None, 100, 40, False)
+    o = [r for r in res["rows"] if r["source"] == "OCR"]
+    assert o and all(r["status"] != S.PASS for r in o)
+    assert any(r["check"] == "OCR wording difference" for r in o)
+    assert any(r["check"].startswith("Font, bold") and r["status"] == S.NOT_VERIFIABLE for r in o)
+    assert any("Candidate" in str(k) for k in ov if isinstance(k, str))
+    # identical pages: nothing is read, and wording is not passed
+    res2, _ = engine.run(a, a, None, 100, 40, False)
+    assert not any(r["status"] == S.PASS and r["check"].startswith("Wording") for r in res2["rows"])
+    # OCR off
+    res3, _ = engine.run(a, b, None, 100, 40, False, False)
+    assert any(r["check"].startswith("OCR wording") and r["status"] == S.NOT_IMPLEMENTED for r in res3["rows"])
