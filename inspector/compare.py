@@ -45,7 +45,7 @@ def compare_text(ref, cand, n):
     for i in range(n):
         a, b = ref["pages"][i], cand["pages"][i]
         if not a["text_extractable"] and not b["text_extractable"]:
-            rows.append(make("Text", S.NOT_VERIFIABLE, "No extractable text (possibly outlined). OCR is not implemented.", i + 1))
+            rows.append(make("Text", S.NOT_VERIFIABLE, "No extractable text (possibly outlined). OCR is applied only to changed regions.", i + 1))
             continue
         wa, wb = _words(a), _words(b)
         sm = difflib.SequenceMatcher(None, wa, wb, autojunk=False)
