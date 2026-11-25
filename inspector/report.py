@@ -32,7 +32,7 @@ def overlay_image(ov, regions):
     im = ov.copy()
     d = ImageDraw.Draw(im)
     for r in regions:
-        d.rectangle([r["x"] - 3, r["y"] - 3, r["x"] + r["w"] + 3, r["y"] + r["h"] + 3], outline=(255, 0, 0), width=2)
+        d.rectangle([r["x"] - 3, r["y"] - 3, r["x"] + r["w"] + 3, r["y"] + r["h"] + 3], outline=tuple(r.get("color", (255, 0, 0))), width=2)
     return im
 
 
@@ -67,7 +67,7 @@ def to_html(result, ref_name, cand_name, overlays=None):
     for page, (ov, regions) in (overlays or {}).items():
         visuals += (f"<h3>Page {page}: visual differences ({len(regions)} region(s))</h3>"
                     f"<img alt='diff page {page}' style='max-width:100%;border:1px solid #ccc' src='data:image/png;base64,{_png_b64(overlay_image(ov, regions))}'>"
-                    "<p class='small'>Red boxes = changed pixels in an RGB render. Not a colour measurement.</p>")
+                    "<p class='small'>Boxes mark differences: red = wording / changed pixels, orange = font/size/bold/underline/colour, blue = table, magenta = codes or outline geometry. RGB render, not a colour measurement.</p>")
     return f"""<!doctype html><meta charset=utf-8><title>{html.escape(TITLE)}: inspection report</title>
 <style>body{{font-family:Segoe UI,Arial,sans-serif;margin:24px;color:#1b1b1b}}table{{border-collapse:collapse;width:100%}}
 td,th{{border:1px solid #ccc;padding:5px 7px;font-size:13px;text-align:left;vertical-align:top}}th{{background:#f1f3f5}}
@@ -84,3 +84,19 @@ td,th{{border:1px solid #ccc;padding:5px 7px;font-size:13px;text-align:left;vert
 <h3>All findings (failures first)</h3>
 <table><tr><th>Page</th><th>Check</th><th>Status</th><th>Detail</th><th>Source</th></tr>{rows}</table>
 <hr><div class='footer'><b>{html.escape(FOOTER_LINES[0])}</b><br>{html.escape(FOOTER_LINES[1])}<br><br>{html.escape(FOOTER_LINES[2])}<br><b>{html.escape(FOOTER_LINES[3])}</b><br><b>{html.escape(FOOTER_LINES[4])}</b></div>"""
+
+
+LEGEND = (("Red", "wording: changed, missing or added text"),
+          ("Orange", "format: font, size, bold, italic, underline or colour"),
+          ("Blue", "tables: structure or cell text"),
+          ("Magenta", "codes, or vector outline geometry (outlined text) that differs"))
+
+
+def highlights_pdf(overlays):
+    """One PDF with every highlighted page (Reference and Candidate). Contains the uploaded artwork: keep it internal."""
+    ims = [overlay_image(ov, regions).convert("RGB") for key, (ov, regions) in overlays.items() if isinstance(key, str)]
+    if not ims:
+        return None
+    buf = io.BytesIO()
+    ims[0].save(buf, "PDF", save_all=True, append_images=ims[1:], resolution=100)
+    return buf.getvalue()
